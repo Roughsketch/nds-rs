@@ -1,11 +1,13 @@
+extern crate byteorder;
 #[macro_use] extern crate clap;
 #[macro_use] extern crate failure;
 
 use clap::{Arg, App};
 use failure::Error;
 
-use std::fs::{File, create_dir_all};
 use std::path::Path;
+
+mod nds;
 
 fn main() -> Result<(), Error> {
     let matches = App::new("NDS Tool")
@@ -37,17 +39,32 @@ fn main() -> Result<(), Error> {
             .conflicts_with("files"))
         .get_matches();
 
-    if let Some(rom) = matches.value_of("files") {
-        if !Path::new(rom).exists() {
-            eprintln!("File '{}' does not exist.", rom);
-            return Ok(())
-        }
+    let input = matches.value_of("input").unwrap();
+    let path = Path::new(input);
+
+    if !path.exists() {
+        eprintln!("Input '{}' does not exist.", input);
+        return Ok(())
     }
 
-    if let Some(rom) = matches.value_of("extract") {
-        if !Path::new(rom).exists() {
-            eprintln!("File '{}' does not exist.", rom);
+    let rom = match nds::rom::Rom::new(path) {
+        Ok(rom) => rom,
+        Err(why) => {
+            eprintln!("Error reading rom: {:?}", why);
+            return Ok(());
         }
+    };
+
+    if matches.is_present("files") {
+        
+    }
+
+    if matches.is_present("extract") {
+        rom.extract(path)?;
+    }
+
+    if matches.is_present("build") {
+        
     }
 
     Ok(())

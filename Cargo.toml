@@ -4,5 +4,6 @@ version = "0.1.0"
 authors = ["Maid Dog <maiddogsrl@gmail.com>"]
 
 [dependencies]
+byteorder = "1.2"
 clap = "2.32"
 failure = "0.1"
