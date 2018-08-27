@@ -1,6 +1,8 @@
 extern crate byteorder;
 #[macro_use] extern crate clap;
 #[macro_use] extern crate failure;
+extern crate memmap;
+extern crate num;
 
 use clap::{Arg, App};
 use failure::Error;
@@ -17,21 +19,20 @@ fn main() -> Result<(), Error> {
             .short("e")
             .long("extract")
             .requires("output")
-            .conflicts_with_all(&["build", "files"]))
+            .conflicts_with_all(&["build", "files"])
+            .takes_value(true))
         .arg(Arg::with_name("build")
             .short("b")
             .long("build")
             .requires("output")
-            .conflicts_with_all(&["extract", "files"]))
+            .conflicts_with_all(&["extract", "files"])
+            .takes_value(true)
+            .validator(nds::valid_directory))
         .arg(Arg::with_name("files")
             .short("f")
             .long("files")
-            .conflicts_with_all(&["extract", "build"]))
-        .arg(Arg::with_name("input")
-            .short("i")
-            .long("input")
-            .takes_value(true)
-            .required(true))
+            .conflicts_with_all(&["extract", "build"])
+            .takes_value(true))
         .arg(Arg::with_name("output")
             .short("o")
             .long("output")
@@ -39,32 +40,50 @@ fn main() -> Result<(), Error> {
             .conflicts_with("files"))
         .get_matches();
 
-    let input = matches.value_of("input").unwrap();
-    let path = Path::new(input);
-
-    if !path.exists() {
-        eprintln!("Input '{}' does not exist.", input);
-        return Ok(())
-    }
-
-    let rom = match nds::rom::Rom::new(path) {
-        Ok(rom) => rom,
-        Err(why) => {
-            eprintln!("Error reading rom: {:?}", why);
-            return Ok(());
-        }
-    };
-
     if matches.is_present("files") {
         
     }
 
-    if matches.is_present("extract") {
-        rom.extract(path)?;
+    if let Some(input) = matches.value_of("extract") {
+        let path = Path::new(input);
+
+        if !path.exists() {
+            eprintln!("Input '{}' does not exist.", input);
+            return Ok(())
+        }
+
+        let output = matches.value_of("output").unwrap();
+
+        let rom = match nds::Extractor::new(path) {
+            Ok(rom) => rom,
+            Err(why) => {
+                eprintln!("Error extracting rom: {:?}", why);
+                return Ok(());
+            }
+        };
+
+        rom.extract(output)?;
     }
 
-    if matches.is_present("build") {
-        
+    if let Some(input) = matches.value_of("build") {
+        let path = Path::new(input);
+
+        if !path.exists() {
+            eprintln!("Input '{}' does not exist.", input);
+            return Ok(())
+        }
+
+        let output = matches.value_of("output").unwrap();
+
+        let rom = match nds::Builder::new(path) {
+            Ok(rom) => rom,
+            Err(why) => {
+                eprintln!("Error building rom: {:?}", why);
+                return Ok(());
+            }
+        };
+
+        rom.build(output)?;
     }
 
     Ok(())
