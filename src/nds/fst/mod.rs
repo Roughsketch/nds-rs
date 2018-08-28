@@ -46,6 +46,9 @@ pub struct Fst {
 }
 
 impl Fst {
+    /// Creates a File System Table given the raw ROM data.
+    /// In order to get all the information to find files,
+    /// the File Allocation Table is passed in as well.
     pub fn new(fst: &[u8], fat: &[u8]) -> Self {
         Self {
             root: FstEntry::new(0, ".", None, None),

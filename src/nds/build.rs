@@ -9,6 +9,10 @@ struct MissingFolderError(&'static str);
 #[derive(Clone, Debug, Fail)]
 struct MissingFileError(&'static str);
 
+/// Builds an NDS ROM given a directory with valid structure.
+/// A directory is valid if [`is_nds_dir`] returns `Ok`
+/// 
+/// [`is_nds_dir`]: struct.Builder.html#method.is_nds_dir
 pub struct Builder {
     root: PathBuf,
 }
@@ -22,6 +26,21 @@ impl Builder {
         })
     }
 
+    /// Determines whether a given path is a valid NDS ROM.
+    /// A valid NDS ROM directory is made when a ROM is extracted
+    /// with an [`Extractor`] and includes the following:
+    /// 
+    /// ./data/
+    /// ./overlay/
+    /// ./header.bin
+    /// ./arm9.bin
+    /// ./arm7.bin
+    /// 
+    /// Due to race conditions, the validity is not a guarantee that 
+    /// the directory is valid through the duration of program execution, 
+    /// so errors can still be thrown for missing files.
+    /// 
+    /// [`Extractor`]: struct.Extractor.html#method.is_nds_dir
     pub fn is_nds_dir<P: AsRef<Path>>(path: P) -> Result<(), Error> {
         let root = path.as_ref();
 
@@ -42,6 +61,9 @@ impl Builder {
         Ok(())
     }
 
+    /// Builds a ROM and saves it to the path given. This method will
+    /// return an error when the directory is missing required files,
+    /// or if there is an issue reading files or saving the ROM.
     pub fn build<P: AsRef<Path>>(&self, path: P) -> Result<(), Error> {
         let output = path.as_ref();
 
