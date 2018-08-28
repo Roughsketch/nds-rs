@@ -47,8 +47,10 @@ fn main() -> Result<(), Error> {
     if let Some(input) = matches.value_of("extract") {
         let path = Path::new(input);
 
-        if !path.exists() {
-            eprintln!("Input '{}' does not exist.", input);
+        //  Check if input path is a file, since it must be a ROM.
+        //  This also checks if it exists.
+        if !path.is_file() {
+            eprintln!("Input '{}' is not a valid file.", input);
             return Ok(())
         }
 
@@ -68,8 +70,10 @@ fn main() -> Result<(), Error> {
     if let Some(input) = matches.value_of("build") {
         let path = Path::new(input);
 
-        if !path.exists() {
-            eprintln!("Input '{}' does not exist.", input);
+        //  Check if input path is a directory, since it must be one.
+        //  This also checks if it exists.
+        if !path.is_dir() {
+            eprintln!("Input '{}' is not a valid directory.", input);
             return Ok(())
         }
 
