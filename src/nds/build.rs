@@ -13,6 +13,7 @@ struct MissingFileError(&'static str);
 /// A directory is valid if [`is_nds_dir`] returns `Ok`
 /// 
 /// [`is_nds_dir`]: struct.Builder.html#method.is_nds_dir
+#[derive(Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Builder {
     root: PathBuf,
 }

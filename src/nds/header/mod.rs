@@ -12,7 +12,7 @@ use failure::Error;
 use std::path::Path;
 use std::io::{Read, Write};
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Header {
     game_info: Info,
     encrypt_seed: u8,

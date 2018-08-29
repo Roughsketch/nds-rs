@@ -7,15 +7,16 @@ use std::fs::{create_dir_all, File};
 use std::io::Write;
 use std::path::Path;
 
+#[fail(display = "Invalid NDS rom or directory.")]
+#[derive(Clone, Debug, Fail)]
+pub struct InvalidRomError;
+
 /// Extracts files from an NDS ROM.
+#[derive(Debug)]
 pub struct Extractor {
     /// A memmap of the ROM to allow easy reading for potentially large files.
     data: Mmap,
 }
-
-#[fail(display = "Invalid NDS rom or directory.")]
-#[derive(Clone, Debug, Fail)]
-pub struct InvalidRomError;
 
 impl Extractor {
     pub fn new<P: AsRef<Path>>(path: P) -> Result<Self, Error> {
