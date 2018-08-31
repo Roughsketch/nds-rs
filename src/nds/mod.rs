@@ -1,6 +1,6 @@
 mod build;
 mod extract;
-pub mod fst;
+pub mod fs;
 
 pub use self::build::Builder;
 pub use self::extract::Extractor;

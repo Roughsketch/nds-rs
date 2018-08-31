@@ -7,6 +7,8 @@ use std::fs::{create_dir_all, File};
 use std::io::Write;
 use std::path::Path;
 
+use nds::fs::{fat::FileAllocTable, fnt::FileNameTable};
+
 #[fail(display = "Invalid NDS rom or directory.")]
 #[derive(Clone, Debug, Fail)]
 pub struct InvalidRomError;
@@ -48,18 +50,27 @@ impl Extractor {
     }
 
     /// A utility to make it easier to write chunks of the ROM to files.
-    /// Copies the ROM data from `start` to `end` into the file denoted by `path`
-    fn write<P, R1, R2>(&self, path: P, start: R1, end: R2) -> Result<(), Error>
+    /// Copies `len` bytes from the ROM starting from `offset` into the file 
+    /// denoted by `path`
+    fn write<P, R1, R2>(&self, path: P, offset: R1, len: R2) -> Result<(), Error>
         where
             P: AsRef<Path>,
             R1: Num + NumCast,
             R2: Num + NumCast
     {
-        let start: usize = NumCast::from(start).unwrap();
-        let end: usize = NumCast::from(end).unwrap();
+        let offset: usize = NumCast::from(offset).unwrap();
+        let len: usize = NumCast::from(len).unwrap();
+
+        {
+            let parent = path.as_ref().parent().unwrap_or(Path::new(""));
+
+            if !parent.exists() {
+                create_dir_all(parent)?;
+            }
+        }
 
         let mut file = File::create(path)?;
-        file.write(&self.data[start..start + end])?;
+        file.write_all(&self.data[offset..offset + len])?;
 
         Ok(())
     }
@@ -68,6 +79,20 @@ impl Extractor {
     fn read_u32(&self, offset: usize) -> Result<u32, Error> {
         let value = (&self.data[offset..]).read_u32::<LittleEndian>()?;
         Ok(value)
+    }
+
+    fn fat(&self) -> Result<FileAllocTable, Error> {
+        let fat_start = self.read_u32(0x48)? as usize;
+        let fat_len = self.read_u32(0x4C)? as usize;
+
+        FileAllocTable::new(&self.data[fat_start..fat_start + fat_len])
+    }
+
+    fn fnt(&self) -> Result<FileNameTable, Error> {
+        let fnt_start = self.read_u32(0x40)? as usize;
+        let fnt_len = self.read_u32(0x44)? as usize;
+
+        FileNameTable::new(&self.data[fnt_start..fnt_start + fnt_len])
     }
     
     /// Extract the overlays and put them in their own directory
@@ -79,7 +104,21 @@ impl Extractor {
     
     /// Extract the files and put them in their own directory
     fn extract_files<P: AsRef<Path>>(&self, path: P) -> Result<(), Error> {
-        create_dir_all(path)?;
+        use nds::fs::FileSystem;
+        create_dir_all(&path)?;
+
+        let fs = FileSystem::new(self.fnt()?, self.fat()?)?;
+
+        fs
+            .files()
+            .iter()
+            .for_each(|file| {
+                let alloc = fs.alloc_info(file.id).unwrap();
+
+                if let Err(why) = self.write(&path.as_ref().join(&file.path), alloc.start, alloc.len()) {
+                    eprintln!("Could not write file: {}", why);
+                }
+            });
 
         Ok(())
     }
