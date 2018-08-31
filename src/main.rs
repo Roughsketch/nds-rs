@@ -1,15 +1,11 @@
-extern crate byteorder;
 #[macro_use] extern crate clap;
-#[macro_use] extern crate failure;
-extern crate memmap;
-extern crate num;
+extern crate failure;
+extern crate nds;
 
 use clap::{Arg, App};
 use failure::Error;
 
 use std::path::Path;
-
-mod nds;
 
 fn main() -> Result<(), Error> {
     let matches = App::new("NDS Tool")
@@ -27,7 +23,7 @@ fn main() -> Result<(), Error> {
             .requires("output")
             .conflicts_with_all(&["extract", "files"])
             .takes_value(true)
-            .validator(nds::valid_directory))
+            .validator(valid_directory))
         .arg(Arg::with_name("files")
             .short("f")
             .long("files")
@@ -88,6 +84,20 @@ fn main() -> Result<(), Error> {
         };
 
         rom.build(output)?;
+    }
+
+    Ok(())
+}
+
+/// Validator for clap. Used to limit build command to directories
+/// that are valid. 
+/// 
+/// Due to race conditions, the validity is not a guarantee that 
+/// the directory is valid through the duration of program execution, 
+/// so errors can still be thrown for missing files.
+fn valid_directory(path: String) -> Result<(), String> {
+    if let Err(why) = nds::Builder::is_nds_dir(path) {
+        return Err(why.to_string())
     }
 
     Ok(())
